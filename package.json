@@ -1,0 +1,30 @@
+{
+  "name": "calypso-mongodb",
+  "version": "0.0.0",
+  "description": "A MongoDB driver for Calypso.",
+  "main": "driver.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/kevinswiber/calypso-mongodb.git"
+  },
+  "keywords": [
+    "calypso",
+    "mongodb",
+    "session"
+  ],
+  "author": "Kevin Swiber <kswiber@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kevinswiber/calypso-mongodb/issues"
+  },
+  "peerDependencies": {
+    "calypso": "*"
+  },
+  "dependencies": {
+    "mongodb": ">=0.10.5"
+  }
+}
+
