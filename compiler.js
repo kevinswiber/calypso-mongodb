@@ -205,6 +205,21 @@ MongoCompiler.prototype.visitDisjunction = function(disjunction) {
   disjunction.right.accept(this);
 };
 
+MongoCompiler.prototype.visitContainsPredicate = function(contains) {
+  if (this.modelFieldMap[contains.field]) {
+    contains.field = this.modelFieldMap[contains.field];
+  }
+
+  if (typeof contains.value === 'string'
+      && contains.value[0] === '@' && this.params) {
+    contains.value = this.params[contains.value.substring(1)];
+  }
+
+  contains.operator = 'contains';
+
+  this.addFilter(contains);
+};
+
 MongoCompiler.prototype.visitComparisonPredicate = function(comparison) {
   if (this.modelFieldMap[comparison.field]) {
     comparison.field = this.modelFieldMap[comparison.field];
@@ -215,52 +230,55 @@ MongoCompiler.prototype.visitComparisonPredicate = function(comparison) {
     comparison.value = this.params[comparison.value.substring(1)];
   }
 
+  this.addFilter(comparison);
+};
+
+MongoCompiler.prototype.addFilter = function(predicate) {
   var obj = {};
 
-  var val;
-
-  if (typeof comparison.value === 'boolean' || comparison.value == null) {
-    val = comparison.value
+  if (typeof predicate.value === 'boolean' || predicate.value == null) {
+    predicate.value = predicate.value
   } else {
-    val = comparison.value[0] === '\'' || comparison.value[0] === '"'
-      ? comparison.value.slice(1, -1)
-      : Number(comparison.value);
+    predicate.value = isNaN(predicate.value) ? predicate.value : parseInt(predicate.value);
   }
 
+  var val = predicate.value;
+
   var mongoVal;
-  switch(comparison.operator) {
+  switch(predicate.operator) {
     case 'eq': mongoVal = val; break;
     case 'lt': mongoVal = { $lt: val }; break;
     case 'lte': mongoVal = { $lte: val }; break;
     case 'gt': mongoVal = { $gt: val }; break;
     case 'gte': mongoVal = { $gte: val }; break;
+    case 'contains': mongoVal = { $regex: new RegExp(val, 'i') }; break;
   }
 
-  if (comparison.isNegated) {
-    var op = comparison.operator === 'eq' ? '$ne' : '$not';
+  if (predicate.isNegated) {
+    var op = predicate.operator === 'eq' ? '$ne' : '$not';
     var v = {};
     v[op] = mongoVal;
     mongoVal = v;
   }
 
-  obj[comparison.field] = mongoVal;
+  obj[predicate.field] = mongoVal;
 
   var cur = obj;
-  if (comparison.obj) {
-    if (comparison.obj[comparison.field]) {
-      throw new Error('Syntax error: multiple instances of `' + comparison.field + '`.');
+  if (predicate.obj) {
+    if (predicate.obj[predicate.field]) {
+      throw new Error('Syntax error: multiple instances of `' + predicate.field + '`.');
     }
-    comparison.obj[comparison.field] = obj[comparison.field];
-    if (comparison.dir === 'right') {
+    predicate.obj[predicate.field] = obj[predicate.field];
+    if (predicate.dir === 'right') {
       if (this.ors.length) {
-        cur = comparison.obj;
+        cur = predicate.obj;
       } else {
-        this.filter.push(comparison.obj);
+        this.filter.push(predicate.obj);
       }
     }
   }
 
-  if (this.ors.length && (!comparison.obj || !comparison.dir || comparison.dir === 'right')) {
+  if (this.ors.length && (!predicate.obj || !predicate.dir || predicate.dir === 'right')) {
     var or = this.ors[this.ors.length - 1];
     if (or.value.length < 2) {
       or.value.push(cur);
@@ -280,7 +298,7 @@ MongoCompiler.prototype.visitComparisonPredicate = function(comparison) {
         this.filter.push(dis);
       }
     }
-  } else if (!comparison.obj) {
+  } else if (!predicate.obj) {
     this.filter.push(cur);
   }
 };
