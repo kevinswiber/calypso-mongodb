@@ -1,4 +1,5 @@
 var MongoCompiler = require('./compiler');
+var ObjectID = require('mongodb').ObjectID;
 
 var MongoSession = module.exports = function(db, cache) {
   this.db = db;
@@ -11,7 +12,7 @@ function convertToModel(config, entity, isBare) {
     obj = entity;
   } else {
     obj = Object.create(config.constructor.prototype);
-    var keys = Object.keys(config.fieldMap);
+    var keys = Object.keys(config.fieldMap || {});
     keys.forEach(function(key) {
       var prop = config.fieldMap[key] || key;
       obj[key] = entity[prop];
@@ -63,21 +64,25 @@ MongoSession.prototype.find = function(query, cb) {
         return convertToModel(query.modelConfig, obj, query.modelConfig.isBare);
       });
 
-      return cb(null, entities);
+      cb(null, entities);
     });
   }
-
-  /*if (!query) {
-    query = 'select *';
-  }
-
-  var fn = this.compiler.compile(collection, query);
-  fn(cb);*/
 };
 
 MongoSession.prototype.get = function(query, id, cb) {
-  var ql = 'select * where _id="' + id + '"';
-  this.find(collection, ql, cb);
+  var config = query.modelConfig;
+
+  var _id = new ObjectID(id);
+
+  this.db.collection(config.collection).findOne({ _id: _id }, function(err, doc) {
+    if (err) {
+      return cb(err);
+    }
+
+    var model = convertToModel(config, doc, config.isBare);
+
+    cb(null, model);
+  });
 };
 
 MongoSession.create = function(options) {
