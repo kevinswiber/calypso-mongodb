@@ -215,9 +215,22 @@ MongoCompiler.prototype.visitContainsPredicate = function(contains) {
     contains.value = this.params[contains.value.substring(1)];
   }
 
-  contains.operator = 'contains';
-
   this.addFilter(contains);
+};
+
+MongoCompiler.prototype.visitLikePredicate = function(like) {
+  if (this.modelFieldMap[like.field]) {
+    like.field = this.modelFieldMap[like.field];
+  }
+
+  if (typeof like.value === 'string'
+      && like.value[0] === '@' && this.params) {
+    like.value = this.params[like.value.substring(1)];
+  }
+
+  like.value = like.value.replace(/\%/g, '(?:.*)');
+
+  this.addFilter(like);
 };
 
 MongoCompiler.prototype.visitComparisonPredicate = function(comparison) {
@@ -252,10 +265,11 @@ MongoCompiler.prototype.addFilter = function(predicate) {
     case 'gt': mongoVal = { $gt: val }; break;
     case 'gte': mongoVal = { $gte: val }; break;
     case 'contains': mongoVal = { $regex: new RegExp(val, 'i') }; break;
+    case 'like': mongoVal = { $regex: new RegExp(val, 'i') }; break;
   }
 
   if (predicate.isNegated) {
-    if (predicate.operator === 'contains') {
+    if (predicate.operator === 'contains' || predicate.operator === 'like') {
       mongoVal = { $regex: new RegExp('^((?!' + val + ').)*$', 'i') };
     } else {
       var op = predicate.operator === 'eq' ? '$ne' : '$not';
