@@ -255,10 +255,14 @@ MongoCompiler.prototype.addFilter = function(predicate) {
   }
 
   if (predicate.isNegated) {
-    var op = predicate.operator === 'eq' ? '$ne' : '$not';
-    var v = {};
-    v[op] = mongoVal;
-    mongoVal = v;
+    if (predicate.operator === 'contains') {
+      mongoVal = { $regex: new RegExp('^((?!' + val + ').)*$', 'i') };
+    } else {
+      var op = predicate.operator === 'eq' ? '$ne' : '$not';
+      var v = {};
+      v[op] = mongoVal;
+      mongoVal = v;
+    }
   }
 
   obj[predicate.field] = mongoVal;
