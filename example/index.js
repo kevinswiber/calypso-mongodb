@@ -5,8 +5,7 @@ var MongoDriver = require('../');
 var engine = calypso.configure({
   driver: MongoDriver.create({
     uri: 'mongodb://localhost:27017/crunchbase'
-  }),
-  mappings: [CompanyMapping]
+  })
 });
 
 engine.build(function(err, connection) {
