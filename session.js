@@ -15,7 +15,22 @@ function convertToModel(config, entity, isBare) {
     var keys = Object.keys(config.fieldMap || {});
     keys.forEach(function(key) {
       var prop = config.fieldMap[key] || key;
-      obj[key] = entity[prop];
+      if (key.indexOf('.') === -1) {
+        obj[key] = entity[prop];
+      } else {
+        var parts = prop.split('.');
+        var part = parts.reduce(function(prev, cur) {
+          if (Array.isArray(prev)) {
+            return prev.map(function(item) {
+              return item[cur];
+            }); 
+          } else if (prev.hasOwnProperty(cur)) {
+            return prev[cur];
+          }
+        }, entity)
+
+        obj[key] = part;
+      }
     });
   }
 
@@ -55,7 +70,22 @@ MongoSession.prototype.find = function(query, cb) {
               f = compiled.fieldMap[field] || field;
             }
 
-            obj[f] = doc[field];
+            if (field.indexOf('.') === -1) {
+              obj[f] = doc[field];
+            } else {
+              var parts = field.split('.');
+              var part = parts.reduce(function(prev, cur) {
+                if (Array.isArray(prev)) {
+                  return prev.map(function(item) {
+                    return item[cur];
+                  }); 
+                } else if (prev.hasOwnProperty(cur)) {
+                  return prev[cur];
+                }
+              }, doc)
+
+              obj[f] = part;
+            }
           });
         } else {
           obj = doc;
