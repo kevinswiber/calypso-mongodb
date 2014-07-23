@@ -24,7 +24,7 @@
     "calypso": "*"
   },
   "dependencies": {
+    "caql": ">=0.1.0",
     "mongodb": ">=0.10.5"
   }
 }
-

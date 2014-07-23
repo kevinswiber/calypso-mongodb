@@ -1,6 +1,6 @@
 var mongodb = require('mongodb');
 var ObjectID = mongodb.ObjectID;
-var Parser = require('calypso').Parser;
+var Parser = require('caql');
 
 var MongoCompiler = module.exports = function(cache) {
   this.fields = [];
